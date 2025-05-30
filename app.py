@@ -2,15 +2,12 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import streamlit as st
-from google.cloud import storage
 import os
 import uuid
-from datetime import datetime
 import numpy as np
+from datetime import datetime
 
 # --- Configuration ---
-GCP_PROJECT_ID = "your-gcp-project-id"
-GCP_BUCKET_NAME = "wildlife-sightings-data"
 CSV_FILE_PATH = "sightings_data.csv"
 
 # --- Data Generation (Simulating eBird/iNaturalist-like data) ---
@@ -34,21 +31,8 @@ def generate_sample_data(n=1000):
     df['date'] = df['timestamp'].dt.date
     return df
 
-# --- GCP Data Upload ---
-def upload_to_gcs(df, bucket_name, file_name):
-    """Upload DataFrame to Google Cloud Storage as CSV."""
-    try:
-        client = storage.Client(project=GCP_PROJECT_ID)
-        bucket = client.bucket(bucket_name)
-        blob = bucket.blob(file_name)
-        df.to_csv(file_name, index=False)
-        blob.upload_from_filename(file_name)
-        os.remove(file_name)
-        return f"Uploaded {file_name} to gs://{bucket_name}/{file_name}"
-    except Exception as e:
-        return f"Error uploading to GCS: {str(e)}"
-
 # --- Visualizations ---
+@st.cache_data
 def create_scatter_plot(df):
     """Create scatter plot of species vs. count."""
     plt.figure(figsize=(10, 6))
@@ -58,10 +42,12 @@ def create_scatter_plot(df):
     plt.ylabel('Count')
     plt.xticks(rotation=45)
     plt.tight_layout()
-    plt.savefig('scatter_plot.png')
+    file_name = 'scatter_plot.png'
+    plt.savefig(file_name)
     plt.close()
-    return 'scatter_plot.png'
+    return file_name
 
+@st.cache_data
 def create_bar_plot(df):
     """Create bar plot of sightings by region."""
     plt.figure(figsize=(10, 6))
@@ -71,10 +57,12 @@ def create_bar_plot(df):
     plt.ylabel('Number of Sightings')
     plt.xticks(rotation=45)
     plt.tight_layout()
-    plt.savefig('bar_plot.png')
+    file_name = 'bar_plot.png'
+    plt.savefig(file_name)
     plt.close()
-    return 'bar_plot.png'
+    return file_name
 
+@st.cache_data
 def create_heatmap(df):
     """Create heatmap of sightings by hour and region."""
     pivot_table = df.pivot_table(values='count', index='hour', columns='region', aggfunc='sum', fill_value=0)
@@ -84,9 +72,10 @@ def create_heatmap(df):
     plt.xlabel('Region')
     plt.ylabel('Hour of Day')
     plt.tight_layout()
-    plt.savefig('heatmap.png')
+    file_name = 'heatmap.png'
+    plt.savefig(file_name)
     plt.close()
-    return 'heatmap.png'
+    return file_name
 
 # --- Streamlit App ---
 def main():
@@ -116,21 +105,27 @@ def main():
     with col1:
         scatter_plot = create_scatter_plot(filtered_df)
         st.image(scatter_plot, caption="Species vs. Count")
+        os.remove(scatter_plot)  # Clean up the file
         
     with col2:
         bar_plot = create_bar_plot(filtered_df)
         st.image(bar_plot, caption="Sightings by Region")
+        os.remove(bar_plot)  # Clean up the file
 
     st.subheader("Sightings Heatmap")
     heatmap = create_heatmap(filtered_df)
     st.image(heatmap, caption="Sightings by Hour and Region")
+    os.remove(heatmap)  # Clean up the file
 
-    # Upload to GCS
-    st.subheader("Upload to Google Cloud Storage")
-    if st.button("Upload Data to GCS"):
-        file_name = f"sightings_{uuid.uuid4()}.csv"
-        result = upload_to_gcs(filtered_df, GCP_BUCKET_NAME, file_name)
-        st.write(result)
+    # Download filtered data as CSV
+    st.subheader("Download Filtered Data")
+    csv = filtered_df.to_csv(index=False)
+    st.download_button(
+        label="Download Data as CSV",
+        data=csv,
+        file_name=f"sightings_{uuid.uuid4()}.csv",
+        mime="text/csv"
+    )
 
 if __name__ == "__main__":
     main()
