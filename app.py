@@ -45,7 +45,11 @@ def create_scatter_plot(df):
     file_name = 'scatter_plot.png'
     plt.savefig(file_name)
     plt.close()
-    return file_name
+    # Read the image into memory and delete the file
+    with open(file_name, "rb") as f:
+        img_data = f.read()
+    os.remove(file_name)
+    return img_data
 
 @st.cache_data
 def create_bar_plot(df):
@@ -60,7 +64,11 @@ def create_bar_plot(df):
     file_name = 'bar_plot.png'
     plt.savefig(file_name)
     plt.close()
-    return file_name
+    # Read the image into memory and delete the file
+    with open(file_name, "rb") as f:
+        img_data = f.read()
+    os.remove(file_name)
+    return img_data
 
 @st.cache_data
 def create_heatmap(df):
@@ -75,7 +83,11 @@ def create_heatmap(df):
     file_name = 'heatmap.png'
     plt.savefig(file_name)
     plt.close()
-    return file_name
+    # Read the image into memory and delete the file
+    with open(file_name, "rb") as f:
+        img_data = f.read()
+    os.remove(file_name)
+    return img_data
 
 # --- Streamlit App ---
 def main():
@@ -103,19 +115,16 @@ def main():
     col1, col2 = st.columns(2)
     
     with col1:
-        scatter_plot = create_scatter_plot(filtered_df)
-        st.image(scatter_plot, caption="Species vs. Count")
-        os.remove(scatter_plot)  # Clean up the file
+        scatter_plot_data = create_scatter_plot(filtered_df)
+        st.image(scatter_plot_data, caption="Species vs. Count")
         
     with col2:
-        bar_plot = create_bar_plot(filtered_df)
-        st.image(bar_plot, caption="Sightings by Region")
-        os.remove(bar_plot)  # Clean up the file
+        bar_plot_data = create_bar_plot(filtered_df)
+        st.image(bar_plot_data, caption="Sightings by Region")
 
     st.subheader("Sightings Heatmap")
-    heatmap = create_heatmap(filtered_df)
-    st.image(heatmap, caption="Sightings by Hour and Region")
-    os.remove(heatmap)  # Clean up the file
+    heatmap_data = create_heatmap(filtered_df)
+    st.image(heatmap_data, caption="Sightings by Hour and Region")
 
     # Download filtered data as CSV
     st.subheader("Download Filtered Data")
